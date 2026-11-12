@@ -11,6 +11,7 @@ import { DetectLab } from './stations/DetectLab'
 import { ForecastLab } from './stations/ForecastLab'
 import { MultiLab } from './stations/MultiLab'
 import { PulseCam } from './stations/PulseCam'
+import { Heart3D } from './components/Heart3D'
 
 const STATIONS = [
   { id: 'adc', name: 'Sensor & ADC', lead: 'Elektroda menangkap tegangan analog x(t). ADC mengambil sampel tiap Tₛ detik dan membulatkannya ke 2ᵇ level. Ubah fs dan jumlah bit, lalu lihat apa yang hilang.', C: AdcLab },
@@ -50,6 +51,7 @@ export default function App() {
   const [station, setStation] = useState<StationId>(init.station)
   const [cam, setCam] = useState(init.cam)
   const [flash, setFlash] = useState<'N' | 'V' | null>(null)
+  const [beatN, setBeatN] = useState(0)
   const timeRef = useRef(init.t)
 
   useEffect(() => { loadManifest().then(setManifest) }, [])
@@ -66,7 +68,7 @@ export default function App() {
   const go = (id: StationId) => { setStation(id); setCam(false); history.replaceState(null, '', '#' + id) }
   const togglePlay = () => { if (playing) setFocus(Math.floor(timeRef.current)); setPlaying(!playing) }
   const scrub = (t: number) => { timeRef.current = t; setNow(t); setFocus(Math.floor(t)) }
-  const onBeat = useCallback((l: 'N' | 'V') => { setFlash(l); setTimeout(() => setFlash(null), 180) }, [])
+  const onBeat = useCallback((l: 'N' | 'V') => { setFlash(l); setBeatN((n) => n + 1); setTimeout(() => setFlash(null), 180) }, [])
 
   const beatsBefore = a ? a.beats.filter((b) => b.pos / FS <= now) : []
   const last = beatsBefore.slice(-9)
@@ -92,6 +94,7 @@ export default function App() {
       {cam ? <main className="wrap"><PulseCam /></main> : (
         <main>
           <section className="hero" aria-label="Monitor EKG">
+            <div className="device">
             <div className="tabs" role="tablist" aria-label="Pilih rekaman pasien">
               {manifest?.records.map((r) => (
                 <button key={r.id} role="tab" aria-selected={r.id === recId} className={r.id === recId ? 'on' : ''} onClick={() => setRecId(r.id)}>
@@ -104,9 +107,12 @@ export default function App() {
                 {a ? <Monitor a={a} playing={playing} speed={speed} timeRef={timeRef} sound={sound} onTick={setNow} onBeat={onBeat} /> : <div className="monitor loading">Memuat rekaman {recId} dan menjalankan detektor…</div>}
               </div>
               <aside className={'vitals' + (flash === 'V' ? ' flash-v' : flash ? ' flash-n' : '')}>
-                <div className="hr">
-                  <span className="hr-v">{Number.isFinite(hr) ? Math.round(hr) : '––'}</span>
-                  <span className="hr-u">detak per menit</span>
+                <div className="vital-top">
+                  <Heart3D beat={beatN} kind={flash} />
+                  <div className="hr">
+                    <span className="hr-v">{Number.isFinite(hr) ? Math.round(hr) : '––'}</span>
+                    <span className="hr-u">detak per menit</span>
+                  </div>
                 </div>
                 <dl>
                   <div><dt>PVC terdeteksi</dt><dd className={nV ? 'red' : ''}>{nV}</dd></div>
@@ -131,6 +137,7 @@ export default function App() {
               </div>
               <label className="snd"><input type="checkbox" checked={sound} onChange={(e) => setSound(e.target.checked)} /> Bunyi detak</label>
             </div>
+            </div>
           </section>
 
           <nav className="chain" aria-label="Rantai pemrosesan sinyal">
@@ -147,7 +154,7 @@ export default function App() {
 
           <section className="wrap station" aria-labelledby="st-title">
             <div className="st-head">
-              <h2 id="st-title">{st.name}</h2>
+              <h2 id="st-title"><span className="coin" aria-hidden>{STATIONS.indexOf(st) + 1}</span>{st.name}</h2>
               <p>{st.lead}</p>
               <p className="seg-info">Rekaman {recId}, mulai detik {fmt(focus, 0)}. Jeda monitor atau geser posisi untuk menganalisis bagian lain.</p>
             </div>

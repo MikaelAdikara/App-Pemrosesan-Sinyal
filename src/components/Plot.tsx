@@ -85,7 +85,7 @@ export function Plot(p: PlotProps) {
     const Y = (v: number) => padT + (1 - (v - y0) / (y1 - y0)) * ph
 
     // latar & grid
-    g.fillStyle = p.grid === 'paper' ? C.paper : '#fff'
+    g.fillStyle = p.grid === 'paper' ? C.paper : '#FBFBFE'
     g.fillRect(padL, padT, pw, ph)
     if (p.grid === 'paper') {
       const minor = 7.5
